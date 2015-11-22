@@ -13,6 +13,9 @@
     "menubar": "^2.3.0"
   },
   "devDependencies": {
-    "eslint-config-simplifield": "^1.1.0"
+    "electron-connect": "^0.3.3",
+    "eslint-config-simplifield": "^1.1.0",
+    "path": "^0.12.7",
+    "request-promise": "^1.0.2"
   }
 }
