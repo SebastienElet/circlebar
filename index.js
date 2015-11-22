@@ -5,9 +5,9 @@
   var BRANCH = '';
   var TOKEN = '';
 
+  var api;
   var app = require('electron').app;
   var shell = require('electron').shell;
-  var api = require('./circleApi.js')(TOKEN);
   var path = require('path');
   var menubar = require('menubar');
   var Menu = require('menu');
@@ -21,16 +21,29 @@
   };
   var mb = menubar(opts);
 
+//////////////
+
+  var storage = require('./data.js');
+
+//////////////
+
   mb.on('ready', appReady);
   mb.on('click', function() {});
   ipcMain.on('send-token', function(event, arg) {
     TOKEN = arg;
+    storage.set('token', TOKEN);
+    api = require('./circleApi.js')(TOKEN);
     tokenWindow.hide();
     makeMenu();
   });
 
   function appReady() {
-    openSettings();
+    if (!storage.get('token')) {
+      openSettings();
+    } else {
+      TOKEN = storage.get('token');
+      api = require('./circleApi.js')(TOKEN);
+    }
     makeMenu();
     getStatus();
     setInterval(getStatus, 60000);
@@ -73,7 +86,7 @@
               click: function() {
                 REPO = 'SimpliField/' + repo.reponame;
                 BRANCH = branchName;
-                getCircleStatus();
+                getStatus();
               },
             });
           });
@@ -81,6 +94,7 @@
         });
         menu.push({ type: 'separator' });
         menu.push({ label: 'Settings', click: openSettings });
+        menu.push({ label: 'Logout', click: logout });
         menu.push({ type: 'separator' });
         menu.push({ label: 'Quit', click: function() { app.quit(); } });
         contextMenu = Menu.buildFromTemplate(menu);
@@ -97,7 +111,6 @@
       default: 'images/icon_neutral.png',
     };
     var endpoint = 'project/' + REPO + '/tree/' + BRANCH;
-
     if ('' !== BRANCH) {
       api.get(endpoint, function getLast(builds) {
         mb.tray.setToolTip(builds[0].reponame + ': ' + builds[0].branch);
@@ -113,6 +126,12 @@
     });
     tokenWindow.loadURL('file://' + path.join(__dirname, 'token.html'));
     tokenWindow.show();
+  }
+  function logout() {
+    storage.unset('token');
+    TOKEN = '';
+    makeMenu();
+    openSettings();
   }
 
 }());
