@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Token</title>
+  <link rel="stylesheet" href="token.css">
+</head>
+<body>
+
+  <form onsubmit="sendToken()">
+    <input id="token" type="text" placeholder="CircleCI Token">
+    <input type="submit">
+  </form>
+
+  <script>
+    var ipcRenderer = require('ipc-renderer');
+    var sendToken = function() {
+      ipcRenderer.send('send-token', document.getElementById("token").value);
+    };
+  </script>
+</body>
+</html>

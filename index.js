@@ -3,7 +3,7 @@
 
   var REPO = '';
   var BRANCH = '';
-  var TOKEN = 'e5f6bbb30b13644dd83376526d5e2e71b73a152a';
+  var TOKEN = '';
 
   var app = require('electron').app;
   var shell = require('electron').shell;
@@ -11,8 +11,10 @@
   var path = require('path');
   var menubar = require('menubar');
   var Menu = require('menu');
+  var BrowserWindow = require('browser-window');
+  var ipcMain = require('ipc-main');
 
-
+  var tokenWindow;
   var opts = {
     dir: __dirname,
     icon: path.join(__dirname, 'images/icon_neutral.png'),
@@ -20,8 +22,15 @@
   var mb = menubar(opts);
 
   mb.on('ready', appReady);
+  mb.on('click', function() {});
+  ipcMain.on('send-token', function(event, arg) {
+    TOKEN = arg;
+    tokenWindow.hide();
+    makeMenu();
+  });
 
   function appReady() {
+    openSettings();
     makeMenu();
     getCircleStatus();
     setInterval(getCircleStatus, 60000);
@@ -29,46 +38,53 @@
 
   function makeMenu() {
     var menu = [];
+    var contextMenu;
 
-    get('projects/', function(values) {
-      var contextMenu;
-
-      menu.push({
-        label: BRANCH ? REPO + ':' + decodeURIComponent(BRANCH) : 'Pick a branch',
-        enabled: !!REPO,
-        click: function(menuItem) {
-          if (menuItem.enabled) {
-            shell.openExternal('https://circleci.com/gh/' + REPO + '/tree/' + BRANCH);
-          }
-        },
-      });
-      menu.push({ type: 'separator' });
-      values.forEach(function(repo) {
-        var branches = Object.keys(repo.branches);
-        var branchesSubmenu = [];
-
-        branches.forEach(function(branchName) {
-          branchesSubmenu.push({
-            label: decodeURIComponent(branchName),
-            type: 'radio',
-            enabled: true,
-            click: function() {
-              REPO = 'SimpliField/' + repo.reponame;
-              BRANCH = branchName;
-              getCircleStatus();
-            },
-          });
-        });
-        menu.push({ label: repo.reponame, submenu: branchesSubmenu });
-      });
+    if ('' === TOKEN) {
+      menu.push({ label: 'Settings', click: openSettings });
       menu.push({ type: 'separator' });
       menu.push({ label: 'Quit', click: function() { app.quit(); } });
-
       contextMenu = Menu.buildFromTemplate(menu);
       mb.tray.setContextMenu(contextMenu);
-    });
-  }
+    } else {
+      get('projects/', function(values) {
+        menu.push({
+          label: BRANCH ? REPO + ':' + decodeURIComponent(BRANCH) : 'Pick a branch',
+          enabled: !!REPO,
+          click: function(menuItem) {
+            if (menuItem.enabled) {
+              shell.openExternal('https://circleci.com/gh/' + REPO + '/tree/' + BRANCH);
+            }
+          },
+        });
+        menu.push({ type: 'separator' });
+        values.forEach(function(repo) {
+          var branches = Object.keys(repo.branches);
+          var branchesSubmenu = [];
 
+          branches.forEach(function(branchName) {
+            branchesSubmenu.push({
+              label: decodeURIComponent(branchName),
+              type: 'radio',
+              enabled: true,
+              click: function() {
+                REPO = 'SimpliField/' + repo.reponame;
+                BRANCH = branchName;
+                getCircleStatus();
+              },
+            });
+          });
+          menu.push({ label: repo.reponame, submenu: branchesSubmenu });
+        });
+        menu.push({ type: 'separator' });
+        menu.push({ label: 'Settings', click: openSettings });
+        menu.push({ type: 'separator' });
+        menu.push({ label: 'Quit', click: function() { app.quit(); } });
+        contextMenu = Menu.buildFromTemplate(menu);
+        mb.tray.setContextMenu(contextMenu);
+      });
+    }
+  }
   function getCircleStatus() {
     var endpoint = 'project/' + REPO + '/tree/' + BRANCH;
 
@@ -91,7 +107,6 @@
       })
     }
   }
-
   function get(endpoint, callback) {
     var api = 'https://circleci.com/api/v1/';
     var options = {
@@ -110,6 +125,14 @@
       .catch(function error(err) {
         console.log('API call failed...', err);
       })
+  }
+  function openSettings() {
+    tokenWindow = new BrowserWindow({ width: 400, height: 200, show: false });
+    tokenWindow.on('closed', function() {
+      tokenWindow = null;
+    });
+    tokenWindow.loadURL('file://' + path.join(__dirname, 'token.html'));
+    tokenWindow.show();
   }
 
 }());
