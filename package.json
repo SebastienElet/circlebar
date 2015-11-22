@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron index.js",
-    "build": "electron-packager . CircleBar --out=builds --platform=darwin --arch=x64 --version=0.35.1 --ignore=ressources,builds --icon=icon.icsn --overwrite"
+    "build": "electron-packager . CircleBar --out=builds --platform=all --arch=x64 --version=0.35.1 --ignore=ressources,builds --icon=icon.icsn --overwrite"
   },
   "author": "Xavier Haniquaut",
   "license": "ISC",

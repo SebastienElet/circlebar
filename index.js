@@ -7,7 +7,7 @@
 
   var app = require('electron').app;
   var shell = require('electron').shell;
-  var rp = require('request-promise');
+  var api = require('./circleApi.js')(TOKEN);
   var path = require('path');
   var menubar = require('menubar');
   var Menu = require('menu');
@@ -32,8 +32,8 @@
   function appReady() {
     openSettings();
     makeMenu();
-    getCircleStatus();
-    setInterval(getCircleStatus, 60000);
+    getStatus();
+    setInterval(getStatus, 60000);
   }
 
   function makeMenu() {
@@ -43,11 +43,14 @@
     if ('' === TOKEN) {
       menu.push({ label: 'Settings', click: openSettings });
       menu.push({ type: 'separator' });
+      menu.push({ label: 'Copy', accelerator: 'Command+C', selector: 'copy:' });      // HACK
+      menu.push({ label: 'Paste', accelerator: 'Command+V', selector: 'paste:' });    // HACK
+      menu.push({ type: 'separator' });
       menu.push({ label: 'Quit', click: function() { app.quit(); } });
       contextMenu = Menu.buildFromTemplate(menu);
       mb.tray.setContextMenu(contextMenu);
     } else {
-      get('projects/', function(values) {
+      api.get('projects/', function(values) {
         menu.push({
           label: BRANCH ? REPO + ':' + decodeURIComponent(BRANCH) : 'Pick a branch',
           enabled: !!REPO,
@@ -85,12 +88,7 @@
       });
     }
   }
-  function getCircleStatus() {
-    var endpoint = 'project/' + REPO + '/tree/' + BRANCH;
-
-    printStatus(endpoint);
-  }
-  function printStatus(endpoint) {
+  function getStatus() {
     var icons = {
       cancelled: 'images/icon_cancelled.png',
       failed: 'images/icon_failed.png',
@@ -98,33 +96,15 @@
       success: 'images/icon_success.png',
       default: 'images/icon_neutral.png',
     };
+    var endpoint = 'project/' + REPO + '/tree/' + BRANCH;
 
     if ('' !== BRANCH) {
-      get(endpoint, function getLast(builds) {
+      api.get(endpoint, function getLast(builds) {
         mb.tray.setToolTip(builds[0].reponame + ': ' + builds[0].branch);
         mb.tray.setImage(path.join(__dirname, icons[builds[0].status || 'default']));
         makeMenu();
-      })
+      });
     }
-  }
-  function get(endpoint, callback) {
-    var api = 'https://circleci.com/api/v1/';
-    var options = {
-      uri: api + endpoint,
-      qs: {
-        'circle-token': TOKEN,
-      },
-      headers: {
-        'User-Agent': 'Request-Promise',
-      },
-      json: true,
-    };
-
-    rp.get(options)
-      .then(callback)
-      .catch(function error(err) {
-        console.log('API call failed...', err);
-      })
   }
   function openSettings() {
     tokenWindow = new BrowserWindow({ width: 400, height: 200, show: false });
