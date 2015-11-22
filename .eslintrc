@@ -1,0 +1,7 @@
+{
+  "extends": "eslint-config-simplifield",
+  "env": {
+    "node": true,
+  }
+}
+
