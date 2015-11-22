@@ -21,35 +21,57 @@
   mb.on('ready', appReady);
 
   function appReady() {
-    var contextMenu = Menu.buildFromTemplate([
-      {
-        label: 'branches',
-        submenu: [
-          {
-            label: 'wip/refactoTables',
-            type: 'radio',
-            checked: true,
-            click: function() { BRANCH = 'wip%2FrefactoTables'; getCircleStatus(); },
-          },
-          {
-            label: 'wip/circleci-fix',
-            type: 'radio',
-            click: function() { BRANCH = 'wip%2Fcircleci-fix'; getCircleStatus(); },
-          },
-          {
-            label: 'master',
-            type: 'radio',
-            click: function() { BRANCH = 'master',getCircleStatus(); },
-          },
-        ],
-      },
-      { label: 'Quit', click: function() { app.quit(); } },
-    ]);
-
-    mb.tray.setContextMenu(contextMenu);
+    makeMenu();
     getCircleStatus();
     setInterval(getCircleStatus, 15000);
   }
+
+  function makeMenu() {
+    var endpoint = 'projects/';
+    var api = 'https://circleci.com/api/v1/';
+    var options = {
+      uri: api + endpoint,
+      qs: {
+        'circle-token': TOKEN,
+      },
+      headers: {
+        'User-Agent': 'Request-Promise',
+      },
+      json: true,
+    };
+    var menu = [];
+
+    rp.get(options)
+      .then(function(values) {
+        var contextMenu;
+
+        values.forEach(function(repo) {
+          var branches = Object.keys(repo.branches);
+          var branchesSubmenu = [];
+
+          branches.forEach(function(branchName) {
+            branchesSubmenu.push({
+              label: decodeURIComponent(branchName),
+              type: 'radio',
+              enabled: true,
+              click: function() {
+                REPO = 'SimpliField/' + repo.reponame;
+                BRANCH = branchName;
+                getCircleStatus();
+              },
+            });
+          });
+          menu.push({ label: repo.reponame, submenu: branchesSubmenu });
+        });
+        menu.push({ label: 'Quit', click: function() { app.quit(); } });
+
+        contextMenu = Menu.buildFromTemplate(menu);
+        mb.tray.setContextMenu(contextMenu);
+      });
+  }
+
+
+
 
   function getCircleStatus() {
     var endpoint = 'project/' + REPO + '/tree/' + BRANCH;
