@@ -4,9 +4,12 @@
   var REPO = 'SimpliField/sf-frontend';
   var BRANCH = 'wip%2FrefactoTables';
   var TOKEN = 'e5f6bbb30b13644dd83376526d5e2e71b73a152a';
+
+  var app = require('electron').app;
   var rp = require('request-promise');
   var path = require('path');
   var menubar = require('menubar');
+  var Menu = require('menu');
 
   var opts = {
     dir: __dirname,
@@ -18,6 +21,32 @@
   mb.on('ready', appReady);
 
   function appReady() {
+    var contextMenu = Menu.buildFromTemplate([
+      {
+        label: 'branches',
+        submenu: [
+          {
+            label: 'wip/refactoTables',
+            type: 'radio',
+            checked: true,
+            click: function() { BRANCH = 'wip%2FrefactoTables'; getCircleStatus(); },
+          },
+          {
+            label: 'wip/circleci-fix',
+            type: 'radio',
+            click: function() { BRANCH = 'wip%2Fcircleci-fix'; getCircleStatus(); },
+          },
+          {
+            label: 'master',
+            type: 'radio',
+            click: function() { BRANCH = 'master',getCircleStatus(); },
+          },
+        ],
+      },
+      { label: 'Quit', click: function() { app.quit(); } },
+    ]);
+
+    mb.tray.setContextMenu(contextMenu);
     getCircleStatus();
     setInterval(getCircleStatus, 15000);
   }
