@@ -13,6 +13,7 @@
   var Menu = require('menu');
   var BrowserWindow = require('browser-window');
   var ipcMain = require('ipc-main');
+  var storage = require('./data.js');
 
   var tokenWindow;
   var opts = {
@@ -20,12 +21,6 @@
     icon: path.join(__dirname, 'images/icon_neutral.png'),
   };
   var mb = menubar(opts);
-
-//////////////
-
-  var storage = require('./data.js');
-
-//////////////
 
   mb.on('ready', appReady);
   mb.on('click', function() {});
@@ -84,7 +79,7 @@
               type: 'radio',
               enabled: true,
               click: function() {
-                REPO = 'SimpliField/' + repo.reponame;
+                REPO = repo.username + '/' + repo.reponame;
                 BRANCH = branchName;
                 getStatus();
               },

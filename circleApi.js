@@ -28,7 +28,7 @@
       rp.get(options)
         .then(callback)
         .catch(function error(err) {
-          console.log('API call failed...');
+          return err.statusCode;
         });
     }
   }
