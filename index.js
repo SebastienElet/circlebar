@@ -1,15 +1,17 @@
 (function() {
   'use strict';
 
-  var REPO = 'SimpliField/sf-frontend';
-  var BRANCH = 'wip%2FrefactoTables';
+  var REPO = '';
+  var BRANCH = '';
   var TOKEN = 'e5f6bbb30b13644dd83376526d5e2e71b73a152a';
 
   var app = require('electron').app;
+  var shell = require('electron').shell;
   var rp = require('request-promise');
   var path = require('path');
   var menubar = require('menubar');
   var Menu = require('menu');
+
 
   var opts = {
     dir: __dirname,
@@ -17,13 +19,12 @@
   };
   var mb = menubar(opts);
 
-
   mb.on('ready', appReady);
 
   function appReady() {
     makeMenu();
     getCircleStatus();
-    setInterval(getCircleStatus, 15000);
+    setInterval(getCircleStatus, 60000);
   }
 
   function makeMenu() {
@@ -45,6 +46,15 @@
       .then(function(values) {
         var contextMenu;
 
+        menu.push({
+          label: BRANCH ? REPO + ':' + BRANCH : 'Pick a branch',
+          enabled: !!REPO,
+          click: function(menuItem) {
+            if (menuItem.enabled) {
+              shell.openExternal('https://circleci.com/gh/' + REPO + '/tree/' + BRANCH);
+            }
+          },
+        });
         values.forEach(function(repo) {
           var branches = Object.keys(repo.branches);
           var branchesSubmenu = [];
@@ -69,9 +79,6 @@
         mb.tray.setContextMenu(contextMenu);
       });
   }
-
-
-
 
   function getCircleStatus() {
     var endpoint = 'project/' + REPO + '/tree/' + BRANCH;
@@ -98,15 +105,17 @@
       default: 'images/icon_neutral.png',
     };
 
-    rp.get(options)
-      .then(function getLast(builds) {
-        mb.tray.setTitle(builds[0].status);
-        mb.tray.setToolTip('Branch: ' + builds[0].branch);
-        mb.tray.setImage(path.join(__dirname, icons[builds[0].status || 'default']));
-      })
-      .catch(function error(err) {
-        console.log('API call failed...', err);
-      });
+    if ('' !== BRANCH) {
+      rp.get(options)
+        .then(function getLast(builds) {
+          mb.tray.setToolTip(builds[0].reponame + ': ' + builds[0].branch);
+          mb.tray.setImage(path.join(__dirname, icons[builds[0].status || 'default']));
+          makeMenu();
+        })
+        .catch(function error(err) {
+          console.log('API call failed...', err);
+        });
+    }
   }
 
 }());
